@@ -30,9 +30,13 @@ def make_function(start, end):
 
 path = idaapi.ask_file(False, '*.json', 'script.json from Il2cppdumper')
 hpath = idaapi.ask_file(False, '*.h', 'il2cpp.h from Il2cppdumper')
+print('Executing il2cpp.h...')
 parse_decls(open(hpath, 'r').read(), 0)
 data = json.loads(open(path, 'rb').read().decode('utf-8'))
 
+print('Starting script!')
+
+print('Processing addresses...')
 if "Addresses" in data and "Addresses" in processFields:
 	addresses = data["Addresses"]
 	for index in range(len(addresses) - 1):
@@ -40,6 +44,7 @@ if "Addresses" in data and "Addresses" in processFields:
 		end = get_addr(addresses[index + 1])
 		make_function(start, end)
 
+print('Processing ScriptMethods...')
 if "ScriptMethod" in data and "ScriptMethod" in processFields:
 	scriptMethods = data["ScriptMethod"]
 	for scriptMethod in scriptMethods:
@@ -50,6 +55,7 @@ if "ScriptMethod" in data and "ScriptMethod" in processFields:
 		if apply_type(addr, parse_decl(signature, 0), 1) == False:
 			print("apply_type failed:", hex(addr), signature)
 
+print('Processing ScriptStrings...')
 if "ScriptString" in data and "ScriptString" in processFields:
 	index = 1
 	scriptStrings = data["ScriptString"]
@@ -61,6 +67,7 @@ if "ScriptString" in data and "ScriptString" in processFields:
 		idc.set_cmt(addr, value, 1)
 		index += 1
 
+print('Processing ScriptMetadata...')
 if "ScriptMetadata" in data and "ScriptMetadata" in processFields:
 	scriptMetadatas = data["ScriptMetadata"]
 	for scriptMetadata in scriptMetadatas:
@@ -73,6 +80,7 @@ if "ScriptMetadata" in data and "ScriptMetadata" in processFields:
 			if apply_type(addr, parse_decl(signature, 0), 1) == False:
 				print("apply_type failed:", hex(addr), signature)
 
+print('Processing ScriptMetadataMethod...')
 if "ScriptMetadataMethod" in data and "ScriptMetadataMethod" in processFields:
 	scriptMetadataMethods = data["ScriptMetadataMethod"]
 	for scriptMetadataMethod in scriptMetadataMethods:
