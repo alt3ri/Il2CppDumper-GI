@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Text;
 #if NETFRAMEWORK
 using System.Windows.Forms;
 #endif
@@ -12,6 +14,7 @@ namespace Il2CppDumper
     class Program
     {
         private static Config config;
+        public static Dictionary<string, string> NameMap = new Dictionary<string, string>();
 
         [STAThread]
         static void Main(string[] args)
@@ -19,6 +22,7 @@ namespace Il2CppDumper
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(AppDomain.CurrentDomain.BaseDirectory + @"config.json"));
             string il2cppPath = null;
             string metadataPath = null;
+            string nameTranslationPath = null;
             string outputDir = null;
 
             if (args.Length == 1)
@@ -68,10 +72,15 @@ namespace Il2CppDumper
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     il2cppPath = ofd.FileName;
-                    ofd.Filter = "global-metadata|global-metadata.dat";
+                    ofd.Filter = "global-metadata|*.*";
                     if (ofd.ShowDialog() == DialogResult.OK)
                     {
                         metadataPath = ofd.FileName;
+
+                        ofd.Title = "Open nameTranslation.txt if you have one, otherwise just hit cancel";
+                        ofd.Filter = "BeeByte Obfuscator mappings|*.*";
+                        if (ofd.ShowDialog() == DialogResult.OK)
+                            nameTranslationPath = ofd.FileName;
                     }
                     else
                     {
@@ -97,6 +106,21 @@ namespace Il2CppDumper
             {
                 try
                 {
+                    if (nameTranslationPath != null && File.Exists(nameTranslationPath)) {
+                        var fileStream = new FileStream(nameTranslationPath, FileMode.Open, FileAccess.Read);
+                        var reader = new StreamReader(fileStream, Encoding.UTF8, false, 65536, true);
+                        while (!reader.EndOfStream) {
+                            var line = reader.ReadLine();
+                            if (string.IsNullOrEmpty(line) || line.StartsWith("#")) continue;
+                            var split = line.Split('⇨');
+                            if (split.Length < 2) continue;
+                            try {
+                                NameMap.Add(split[0], split[1]);
+                            }
+                            catch { }
+                        }
+                    }
+                    Console.WriteLine($"Name map built, name count: {NameMap.Count}");
                     if (Init(il2cppPath, metadataPath, out var metadata, out var il2Cpp))
                     {
                         Dump(metadata, il2Cpp, outputDir);
@@ -210,33 +234,23 @@ namespace Il2CppDumper
             Console.WriteLine("Searching...");
             try
             {
-                var flag = il2Cpp.PlusSearch(metadata.methodDefs.Count(x => x.methodIndex >= 0), metadata.typeDefs.Length, metadata.imageDefs.Length);
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    if (!flag && il2Cpp is PE)
-                    {
-                        Console.WriteLine("Use custom PE loader");
-                        il2Cpp = PELoader.Load(il2cppPath);
-                        il2Cpp.SetProperties(version, metadata.metadataUsagesCount);
-                        flag = il2Cpp.PlusSearch(metadata.methodDefs.Count(x => x.methodIndex >= 0), metadata.typeDefs.Length, metadata.imageDefs.Length);
-                    }
-                }
-                if (!flag)
-                {
-                    flag = il2Cpp.Search();
-                }
-                if (!flag)
-                {
-                    flag = il2Cpp.SymbolSearch();
+                ulong codeRegistration = 0, metadataRegistration = 0, mihoyoUsages = 0;
+                var flag = KhangSearch.SearchRegistrations(il2Cpp.ImageBase, il2cppPath, out codeRegistration, out metadataRegistration, out mihoyoUsages);
+                if (flag) {
+                    Console.WriteLine("KhangSearch succeeded, thanks Khang! (no beer party smh)");
+                    il2Cpp.Init(codeRegistration, metadataRegistration, mihoyoUsages);
+                    return true;
                 }
                 if (!flag)
                 {
                     Console.WriteLine("ERROR: Can't use auto mode to process file, try manual mode.");
                     Console.Write("Input CodeRegistration: ");
-                    var codeRegistration = Convert.ToUInt64(Console.ReadLine(), 16);
+                    codeRegistration = Convert.ToUInt64(Console.ReadLine(), 16);
                     Console.Write("Input MetadataRegistration: ");
-                    var metadataRegistration = Convert.ToUInt64(Console.ReadLine(), 16);
-                    il2Cpp.Init(codeRegistration, metadataRegistration);
+                    metadataRegistration = Convert.ToUInt64(Console.ReadLine(), 16);
+                    Console.Write("Input MihoyoUsages: ");
+                    mihoyoUsages = Convert.ToUInt64(Console.ReadLine(), 16);
+                    il2Cpp.Init(codeRegistration, metadataRegistration, mihoyoUsages);
                 }
                 if (il2Cpp.Version >= 27 && il2Cpp.IsDumped)
                 {

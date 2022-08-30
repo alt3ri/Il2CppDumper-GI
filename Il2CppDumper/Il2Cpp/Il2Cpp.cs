@@ -9,6 +9,7 @@ namespace Il2CppDumper
     {
         private Il2CppMetadataRegistration pMetadataRegistration;
         private Il2CppCodeRegistration pCodeRegistration;
+        public Il2CppMihoyoUsages pMihoyoUsages;
         public ulong[] methodPointers;
         public ulong[] genericMethodPointers;
         public ulong[] invokerPointers;
@@ -47,8 +48,11 @@ namespace Il2CppDumper
             Version = version;
             this.metadataUsagesCount = metadataUsagesCount;
         }
+        protected bool AutoPlusInit(ulong codeRegistration, ulong metadataRegistration) {
+            return AutoPlusInit(codeRegistration, metadataRegistration, 0);
+        }
 
-        protected bool AutoPlusInit(ulong codeRegistration, ulong metadataRegistration)
+        protected bool AutoPlusInit(ulong codeRegistration, ulong metadataRegistration, ulong mihoyoUsages)
         {
             if (codeRegistration != 0)
             {
@@ -96,15 +100,20 @@ namespace Il2CppDumper
             }
             Console.WriteLine("CodeRegistration : {0:x}", codeRegistration);
             Console.WriteLine("MetadataRegistration : {0:x}", metadataRegistration);
-            if (codeRegistration != 0 && metadataRegistration != 0)
+            Console.WriteLine("mihoyoUsages : {0:x}", mihoyoUsages);
+            if (codeRegistration != 0 && metadataRegistration != 0 && mihoyoUsages != 0)
             {
-                Init(codeRegistration, metadataRegistration);
+                Init(codeRegistration, metadataRegistration, mihoyoUsages);
                 return true;
             }
             return false;
         }
 
-        public virtual void Init(ulong codeRegistration, ulong metadataRegistration)
+        public virtual void Init(ulong codeRegistration, ulong metadataRegistration) {
+            Init(codeRegistration, metadataRegistration, 0);
+        }
+
+        public virtual void Init(ulong codeRegistration, ulong metadataRegistration, ulong mihoyoUsages)
         {
             pCodeRegistration = MapVATR<Il2CppCodeRegistration>(codeRegistration);
             if (Version == 27 && pCodeRegistration.invokerPointersCount > 0x50000) //TODO
@@ -240,6 +249,8 @@ namespace Il2CppDumper
                 list.Add(methodSpec);
                 methodSpecGenericMethodPointers.Add(methodSpec, genericMethodPointers[table.indices.methodIndex]);
             }
+
+            pMihoyoUsages = MapVATR<Il2CppMihoyoUsages>(mihoyoUsages);
         }
 
         public T MapVATR<T>(ulong addr) where T : new()

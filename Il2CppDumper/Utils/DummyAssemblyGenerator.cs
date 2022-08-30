@@ -82,6 +82,18 @@ namespace Il2CppDumper
                     var typeDef = metadata.typeDefs[index];
                     var namespaceName = metadata.GetStringFromIndex(typeDef.namespaceIndex);
                     var typeName = metadata.GetStringFromIndex(typeDef.nameIndex);
+
+                    var lastSlashIndex = typeName.LastIndexOf('/');
+                    if (lastSlashIndex != -1) {
+                        typeName = typeName.Substring(lastSlashIndex + 1);
+                    }
+
+                    var lastDotIndex = typeName.LastIndexOf('.');
+                    if (lastDotIndex != -1) {
+                        namespaceName = typeName.Substring(0, lastDotIndex) + namespaceName;
+                        typeName = typeName.Substring(lastDotIndex + 1);
+                    }
+
                     var typeDefinition = new TypeDefinition(namespaceName, typeName, (TypeAttributes)typeDef.flags);
                     typeDefinitionDic.Add(typeDef, typeDefinition);
                     if (typeDef.declaringTypeIndex == -1)
@@ -668,14 +680,7 @@ namespace Il2CppDumper
             var val = blobValue.Value;
             if (typeReference.FullName == "System.Object")
             {
-                if (blobValue.il2CppTypeEnum == Il2CppTypeEnum.IL2CPP_TYPE_IL2CPP_TYPE_INDEX)
-                {
-                    val = new CustomAttributeArgument(memberReference.Module.ImportReference(typeof(Type)), GetTypeReference(memberReference, (Il2CppType)val));
-                }
-                else
-                {
-                    val = new CustomAttributeArgument(GetBlobValueTypeReference(blobValue, memberReference), val);
-                }
+                val = new CustomAttributeArgument(GetBlobValueTypeReference(blobValue, memberReference), val);
             }
             else if (val == null)
             {

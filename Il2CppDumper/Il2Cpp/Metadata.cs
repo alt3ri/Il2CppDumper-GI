@@ -181,7 +181,7 @@ namespace Il2CppDumper
         {
             if (!stringCache.TryGetValue(index, out var result))
             {
-                result = ReadStringToNull(header.stringOffset + index);
+                result = LookupNameTranslation(ReadStringToNull(header.stringOffset + index));
                 stringCache.Add(index, result);
             }
             return result;
@@ -220,22 +220,12 @@ namespace Il2CppDumper
             {
                 metadataUsageDic[(Il2CppMetadataUsage)i] = new SortedDictionary<uint, uint>();
             }
-            foreach (var metadataUsageList in metadataUsageLists)
+            foreach (var metadataUsagePair in metadataUsagePairs)
             {
-                for (int i = 0; i < metadataUsageList.count; i++)
-                {
-                    var offset = metadataUsageList.start + i;
-                    if (offset >= metadataUsagePairs.Length)
-                    {
-                        continue;
-                    }
-                    var metadataUsagePair = metadataUsagePairs[offset];
-                    var usage = GetEncodedIndexType(metadataUsagePair.encodedSourceIndex);
-                    var decodedIndex = GetDecodedMethodIndex(metadataUsagePair.encodedSourceIndex);
-                    metadataUsageDic[(Il2CppMetadataUsage)usage][metadataUsagePair.destinationIndex] = decodedIndex;
-                }
+                var usage = GetEncodedIndexType(metadataUsagePair.encodedSourceIndex);
+                var decodedIndex = GetDecodedMethodIndex(metadataUsagePair.encodedSourceIndex);
+                metadataUsageDic[(Il2CppMetadataUsage)usage][metadataUsagePair.destinationIndex] = decodedIndex;
             }
-            //metadataUsagesCount = metadataUsagePairs.Max(x => x.destinationIndex) + 1;
             metadataUsagesCount = metadataUsageDic.Max(x => x.Value.Select(y => y.Key).DefaultIfEmpty().Max()) + 1;
         }
 
@@ -300,6 +290,12 @@ namespace Il2CppDumper
                         return 0;
                 }
             }
+        }
+
+        public string LookupNameTranslation(string obfuscated)
+        {
+            if (Program.NameMap.TryGetValue(obfuscated, out var original)) return original;
+            return obfuscated;
         }
     }
 }
