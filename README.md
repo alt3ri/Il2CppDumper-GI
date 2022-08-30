@@ -1,5 +1,7 @@
 # Il2CppDumper
 
+Il2CppDumper for anime game but with proper nameTranslation support and usage lists fixed (2.7 and above)
+
 [![Build status](https://ci.appveyor.com/api/projects/status/anhqw33vcpmp8ofa?svg=true)](https://ci.appveyor.com/project/Perfare/il2cppdumper/branch/master/artifacts)
 
 中文说明请戳[这里](README.zh-CN.md)
