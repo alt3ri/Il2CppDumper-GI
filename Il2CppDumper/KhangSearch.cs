@@ -30,7 +30,7 @@ namespace Il2CppDumper {
 
             // functions are always aligned to 16 bytes
             const int patternLength = 29;
-            for (int i = 0; i < bytes.Length - patternLength; i += 0x1) {
+            for (int i = 0; i < bytes.Length - patternLength; i += 0x10) {
                 if (
                     bytes[i + 0] == 0x4C && bytes[i + 1] == 0x8D && bytes[i + 2] == 0x0D &&
                     bytes[i + 7] == 0x4C && bytes[i + 8] == 0x8D && bytes[i + 9] == 0x05 &&
